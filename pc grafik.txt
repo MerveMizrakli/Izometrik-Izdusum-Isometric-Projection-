@@ -1,0 +1,134 @@
+using System;
+using OpenTK;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
+
+namespace YansitmaProgrami
+{
+    class Program : GameWindow
+    {
+        private Vector2 A, B, C; // Üçgenin köşe noktaları
+        private Vector2 A_reflected, B_reflected, C_reflected; // Yansıtılmış noktalar
+        private double m = 0.05; // Doğrunun eğimi
+        private double c = 0.65; // Doğrunun y-eksenini kestiği nokta
+
+        public Program() : base(800, 600, GraphicsMode.Default, " Dogruya Göre Yansıtma Programı") { }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            // Üçgenin köşe noktaları
+            A = new Vector2(2, 3);
+            B = new Vector2(7, 3);
+            C = new Vector2(2, 5);
+
+            var reflectionMatrix = CalculateReflectionMatrix(m, c);
+
+            A_reflected = MultiplyMatrix(reflectionMatrix, A);
+            B_reflected = MultiplyMatrix(reflectionMatrix, B);
+            C_reflected = MultiplyMatrix(reflectionMatrix, C);
+
+          
+            GL.MatrixMode(MatrixMode.Projection);
+            GL.LoadIdentity();
+            GL.Ortho(-10, 10, -10, 10, -1, 1); 
+
+            GL.MatrixMode(MatrixMode.Modelview);
+            GL.LoadIdentity();
+        }
+
+        protected override void OnRenderFrame(FrameEventArgs e)
+        {
+            
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.ClearColor(Color4.White);
+
+            // Koordinat düzlemini çiziyoruz
+            DrawAxes();
+
+            // Yansıma doğrusunu çiziyoruz
+            DrawReflectionLine(m, c, Color4.Green);
+
+            
+            DrawTriangle(A, B, C, Color4.Blue);          
+            DrawTriangle(A_reflected, B_reflected, C_reflected, Color4.Red); 
+
+            // Tamamlanmış çerçeveyi gösteriyoruz
+            SwapBuffers();
+        }
+
+        private void DrawAxes()
+        {
+            GL.Begin(PrimitiveType.Lines);
+            GL.Color3(0.0f, 0.0f, 0.0f); // koordinat düzlemi
+
+            // X ekseni
+            GL.Vertex2(-10, 0);
+            GL.Vertex2(10, 0);
+
+            // y 
+            GL.Vertex2(0, -10);
+            GL.Vertex2(0, 10);
+
+            GL.End();
+        }
+
+        private void DrawTriangle(Vector2 A, Vector2 B, Vector2 C, Color4 color)
+        {
+            GL.Begin(PrimitiveType.Triangles);
+            GL.Color4(color);
+
+            GL.Vertex2(A.X, A.Y);
+            GL.Vertex2(B.X, B.Y);
+            GL.Vertex2(C.X, C.Y);
+
+            GL.End();
+        }
+
+        private void DrawReflectionLine(double m, double c, Color4 color)
+        {
+            GL.Begin(PrimitiveType.Lines);
+            GL.Color4(color);
+
+           
+            double x1 = -10;
+            double y1 = m * x1 + c;
+
+            double x2 = 10;
+            double y2 = m * x2 + c;
+
+            GL.Vertex2(x1, y1);
+            GL.Vertex2(x2, y2);
+
+            GL.End();
+        }
+
+        private double[,] CalculateReflectionMatrix(double m, double c)
+        {
+            // Yansıma matrisini hesaplıyoruz
+            double d = Math.Sqrt(1 + m * m);
+            return new double[3, 3]
+            {
+{ (1 - m * m) / (1 + m * m), (2 * m) / (1 + m * m), (-2 * m * c) / (1 + m * m) },
+{ (2 * m) / (1 + m * m), (m * m - 1) / (1 + m * m), (2 * c) / (1 + m * m) },
+{0, 0, 1}
+};
+        }
+
+        private Vector2 MultiplyMatrix(double[,] matrix, Vector2 point)
+        {
+            // Matris çarpma işlemi
+            double x = matrix[0, 0] * point.X + matrix[0, 1] * point.Y + matrix[0, 2];
+            double y = matrix[1, 0] * point.X + matrix[1, 1] * point.Y + matrix[1, 2];
+            return new Vector2((float)x, (float)y);
+        }
+
+        [STAThread]
+        static void Main(string[] args)
+        {
+            using (var program = new Program())
+            {
+                program.Run(60.0);
+            }
+        }
+    }
+}
